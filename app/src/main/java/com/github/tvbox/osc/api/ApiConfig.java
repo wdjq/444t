@@ -89,32 +89,42 @@ public class ApiConfig {
     }
 
     public static String FindResult(String json, String configKey) {
-        String content = json;
-        try {
-            if (AES.isJson(content)) return content;
-            Pattern pattern = Pattern.compile("[A-Za-z0]{8}\\*\\*");
-            Matcher matcher = pattern.matcher(content);
-            if(matcher.find()){
-                content=content.substring(content.indexOf(matcher.group()) + 10);
-                content = new String(Base64.decode(content, Base64.DEFAULT));
-            }
-            if (content.startsWith("2423")) {
-                String data = content.substring(content.indexOf("2324") + 4, content.length() - 26);
-                content = new String(AES.toBytes(content)).toLowerCase();
-                String key = AES.rightPadding(content.substring(content.indexOf("$#") + 2, content.indexOf("#$")), "0", 16);
-                String iv = AES.rightPadding(content.substring(content.length() - 13), "0", 16);
+    String content = json;
+    try {
+        if (AES.isJson(content)) return content;
+        Pattern pattern = Pattern.compile("[A-Za-z0]{8}\\*\\*");
+        Matcher matcher = pattern.matcher(content);
+        if(matcher.find()){
+            content = content.substring(content.indexOf(matcher.group()) + 10);
+            content = new String(Base64.decode(content, Base64.DEFAULT), "UTF-8");
+            // 检查解码后的字符串是否以"1234"开头
+            if (content.startsWith("1234")) {
+                // 跳过"1234"前缀
+                String data = content.substring(4);
+                // 使用给定的密钥和偏移量进行解密
+                String key = "asd520"; // 密钥
+                String iv = "abcdefg1234567"; // 偏移量
                 json = AES.CBC(data, key, iv);
-            }else if (configKey !=null && !AES.isJson(content)) {
-                json = AES.ECB(content, configKey);
+            } else {
+                // 如果不以"1234"开头，则执行原有程序
+                if (content.startsWith("2423")) {
+                    String data = content.substring(content.indexOf("2324") + 4, content.length() - 26);
+                    content = new String(AES.toBytes(content)).toLowerCase();
+                    String key = AES.rightPadding(content.substring(content.indexOf("$#") + 2, content.indexOf("#$")), "0", 16);
+                    String iv = AES.rightPadding(content.substring(content.length() - 13), "0", 16);
+                    json = AES.CBC(data, key, iv);
+                } else if (configKey != null && !AES.isJson(content)) {
+                    json = AES.ECB(content, configKey);
+                } else {
+                    json = content;
+                }
             }
-            else{
-                json = content;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-        return json;
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+    return json;
+}
 
     private static byte[] getImgJar(String body){
         Pattern pattern = Pattern.compile("[A-Za-z0]{8}\\*\\*");
